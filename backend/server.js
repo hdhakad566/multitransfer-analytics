@@ -1,31 +1,28 @@
 const express = require("express");
 const cors = require("cors");
-const transactionRoutes = require("./routes/transaction"); // Import transaction routes
-const sequelize = require("./config/database"); // Import DB connection
+const transactionRoutes = require("./routes/transaction");
+const graphRoutes = require("./routes/graph"); // Import graph route
+const sequelize = require("./config/database");
+const path = require("path");
 
 const app = express();
 
-// Middleware
 app.use(express.json());
+app.use(cors({ origin: "http://localhost:5173" }));
 
-// ✅ Fix: Proper CORS setup
-app.use(
-  cors({
-    origin: "http://localhost:5173", // Allow frontend
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
+// ✅ Serve graph image statically
+// app.use("/graph", express.static(path.join(__dirname, "graph")));
 
-// ✅ Use transaction routes
+app.use("/graph", express.static(path.join(__dirname, "../graph")));
+
 app.use("/api", transactionRoutes);
+app.use("/api", graphRoutes); // ✅ Add graph routes
 
-// ✅ Sync database before starting server
 sequelize
   .authenticate()
   .then(() => {
     console.log("✅ Database connected successfully!");
-    return sequelize.sync(); // Ensure tables are created
+    return sequelize.sync();
   })
   .then(() => {
     app.listen(5000, () => console.log("🚀 Server running on port 5000"));

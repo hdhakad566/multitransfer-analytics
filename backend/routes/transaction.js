@@ -8,4 +8,7 @@ router.get("/transactions", transactionController.getAllTransactions);
 router.get("/transactions/hash/:hash", transactionController.getTransactionByHash);
 router.get("/transactions/sender/:sender", transactionController.getTransactionsBySender);
 
+// ✅ Fix: Ensure `getGraphData` exists in the controller
+router.get("/transactions/graph-data", transactionController.getGraphData);
+
 module.exports = router;

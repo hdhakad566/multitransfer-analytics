@@ -1,42 +1,51 @@
 const Transaction = require("../models/Transaction");
 
+const path = require("path");
+
 // ✅ Save transaction data
 exports.saveTransaction = async (req, res) => {
-  try {
-    const {
-      sender,
-      totalAmount,
-      recipientCount,
-      gasUsed,
-      transactionHash,
-      transactionSpeed,
-      blockPropagationTime,
-      recipientAddresses,
-    } = req.body;
-
-    // ✅ Save transaction in DB
-    const transaction = await Transaction.create({
-      sender,
-      totalAmount,
-      recipientCount,
-      gasUsed,
-      transactionHash,
-      transactionSpeed,
-      blockPropagationTime,
-      recipientAddresses,
-    });
-    console.log("📩 Received transaction data:", req.body); // ✅ Log request data
-
-    const transactionD = await Transaction.create(req.body);
-
-    console.log("✅ Transaction saved:", transactionD);
-
-    res.status(201).json({ success: true, message: "Transaction saved!", transaction });
-  } catch (error) {
-    console.error("Save Transaction Error:", error);
-    res.status(500).json({ success: false, error: "Failed to save transaction" });
-  }
-};
+          try {
+            const {
+              sender,
+              totalAmount,
+              recipientCount,
+              gasUsed,
+              transactionHash,
+              transactionSpeed,
+              blockPropagationTime,
+              recipientAddresses,
+            } = req.body;
+        
+            console.log("📩 Received transaction data:", req.body);
+        
+            // ✅ Prevent duplicate transaction storage
+            const [transaction, created] = await Transaction.findOrCreate({
+              where: { transactionHash }, // Ensure uniqueness
+              defaults: {
+                sender,
+                totalAmount,
+                recipientCount,
+                gasUsed,
+                transactionSpeed,
+                blockPropagationTime,
+                recipientAddresses,
+              },
+            });
+        
+            if (!created) {
+              console.log("⚠️ Duplicate transaction detected, not saving again.");
+              return res.status(200).json({ success: false, message: "Transaction already exists!" });
+            }
+        
+            console.log("✅ Transaction saved:", transaction);
+            res.status(201).json({ success: true, message: "Transaction saved!", transaction });
+        
+          } catch (error) {
+            console.error("Save Transaction Error:", error);
+            res.status(500).json({ success: false, error: "Failed to save transaction" });
+          }
+        };
+        
 
 // ✅ Get all transactions
 exports.getAllTransactions = async (req, res) => {
@@ -78,3 +87,23 @@ exports.getTransactionsBySender = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch transactions" });
   }
 };
+
+
+// ✅ Get transactions for graph visualization
+exports.getGraphData = async (req, res) => {
+          try {
+            const transactions = await Transaction.findAll();
+        
+            // Format data for frontend
+            const graphData = transactions.map(tx => ({
+              recipientCount: tx.recipientCount,
+              totalAmount: parseFloat(tx.totalAmount),
+            }));
+        
+            res.json(graphData);
+          } catch (error) {
+            console.error("Get Graph Data Error:", error);
+            res.status(500).json({ error: "Failed to fetch graph data" });
+          }
+        };
+        
